@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>qure.ai — A Child's Journey</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #000;
+        font-family: 'Georgia', serif;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+      }
+
+      /* ── Splash screen ── */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: #0a0a0a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        transition: opacity 0.8s ease;
+      }
+
+      #splash.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .splash-logo {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.02em;
+      }
+
+      .splash-logo span {
+        color: #4A90D9;
+      }
+
+      .splash-title {
+        font-size: 1.1rem;
+        color: rgba(255,255,255,0.5);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        font-family: 'Georgia', serif;
+        font-style: italic;
+      }
+
+      .splash-divider {
+        width: 40px;
+        height: 1px;
+        background: rgba(255,255,255,0.2);
+      }
+
+      .splash-instruction {
+        text-align: center;
+        color: rgba(255,255,255,0.6);
+        font-size: 0.9rem;
+        line-height: 1.8;
+        max-width: 280px;
+      }
+
+      .splash-instruction strong {
+        color: #fff;
+        display: block;
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .start-btn {
+        margin-top: 1rem;
+        padding: 1rem 2.5rem;
+        background: #4A90D9;
+        color: #fff;
+        border: none;
+        border-radius: 50px;
+        font-size: 1rem;
+        font-family: 'Georgia', serif;
+        cursor: pointer;
+        letter-spacing: 0.05em;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      .start-btn:active {
+        transform: scale(0.97);
+        background: #3a7bc8;
+      }
+
+      .scenes-hint {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .scene-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+      }
+
+      .scene-dot.active {
+        background: #4A90D9;
+        width: 24px;
+        border-radius: 4px;
+      }
+
+      /* ── AR scene wrapper ── */
+      #ar-scene {
+        position: fixed;
+        inset: 0;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #ar-scene.visible {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      /* ── HUD overlay ── */
+      #hud {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        padding: 1.2rem 1.5rem;
+        display: none;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+      }
+
+      #hud.visible {
+        display: flex;
+      }
+
+      .hud-logo {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.01em;
+      }
+
+      .hud-logo span {
+        color: #4A90D9;
+      }
+
+      .hud-hint {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.6);
+        font-style: italic;
+      }
+
+      /* ── Scene indicator ── */
+      #scene-indicator {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 50;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      #scene-indicator.visible {
+        display: flex;
+      }
+
+      .scene-label {
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-style: italic;
+        opacity: 0;
+        transition: opacity 0.5s;
+      }
+
+      .scene-label.show {
+        opacity: 1;
+      }
+
+      .scene-dots {
+        display: flex;
+        gap: 6px;
+      }
+
+      .sdot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.3);
+        transition: all 0.3s;
+      }
+
+      .sdot.lit {
+        background: #4A90D9;
+        width: 18px;
+        border-radius: 3px;
+      }
+
+      /* ── Scan prompt ── */
+      #scan-prompt {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        pointer-events: none;
+      }
+
+      .scan-frame {
+        width: 220px;
+        height: 220px;
+        position: relative;
+        opacity: 0.7;
+      }
+
+      .scan-frame::before,
+      .scan-frame::after {
+        content: '';
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-color: #fff;
+        border-style: solid;
+      }
+
+      .scan-frame::before {
+        top: 0; left: 0;
+        border-width: 2px 0 0 2px;
+      }
+
+      .scan-frame::after {
+        bottom: 0; right: 0;
+        border-width: 0 2px 2px 0;
+      }
+
+      .scan-frame-tr,
+      .scan-frame-bl {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-color: #fff;
+        border-style: solid;
+      }
+
+      .scan-frame-tr {
+        top: 0; right: 0;
+        border-width: 2px 2px 0 0;
+      }
+
+      .scan-frame-bl {
+        bottom: 0; left: 0;
+        border-width: 0 0 2px 2px;
+      }
+
+      .scan-line {
+        position: absolute;
+        left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(to right, transparent, #4A90D9, transparent);
+        animation: scanline 2s ease-in-out infinite;
+      }
+
+      @keyframes scanline {
+        0% { top: 10%; }
+        50% { top: 90%; }
+        100% { top: 10%; }
+      }
+
+      .scan-text {
+        color: rgba(255,255,255,0.7);
+        font-size: 0.85rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-style: italic;
+      }
+
+      .scan-text.error {
+        color: #ffb3b3;
+        max-width: 280px;
+        line-height: 1.6;
+        text-align: center;
+        text-transform: none;
+        letter-spacing: 0.02em;
+      }
+
+      #scan-prompt.hidden {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- ── Splash ── -->
+    <div id="splash">
+      <div class="splash-logo">qure<span>.ai</span></div>
+      <div class="splash-divider"></div>
+      <div class="splash-title">A Child's Journey</div>
+      <div class="splash-instruction">
+        <strong>Point at the banner</strong>
+        Four scenes will come alive as you explore each part of the story.
+      </div>
+      <div class="scenes-hint">
+        <div class="scene-dot active"></div>
+        <div class="scene-dot"></div>
+        <div class="scene-dot"></div>
+        <div class="scene-dot"></div>
+      </div>
+      <button class="start-btn" id="startBtn">Begin Experience</button>
+    </div>
+
+    <!-- ── HUD ── -->
+    <div id="hud">
+      <div class="hud-logo">qure<span>.ai</span></div>
+      <div class="hud-hint">Point at the banner</div>
+    </div>
+
+    <!-- ── Scene indicator ── -->
+    <div id="scene-indicator">
+      <div class="scene-label" id="sceneLabel"></div>
+      <div class="scene-dots">
+        <div class="sdot" id="dot0"></div>
+        <div class="sdot" id="dot1"></div>
+        <div class="sdot" id="dot2"></div>
+        <div class="sdot" id="dot3"></div>
+      </div>
+    </div>
+
+    <!-- ── Scan prompt ── -->
+    <div id="scan-prompt">
+      <div class="scan-frame">
+        <div class="scan-frame-tr"></div>
+        <div class="scan-frame-bl"></div>
+        <div class="scan-line"></div>
+      </div>
+      <div class="scan-text">Aim at the banner</div>
+    </div>
+
+    <!-- ── AR Scene ── -->
+    <div id="ar-scene">
+      <a-scene
+        mindar-image="
+          imageTargetSrc: targets.mind;
+          autoStart: false;
+          uiLoading: no;
+          uiScanning: no;
+          uiError: no;
+          filterMinCF: 0.001;
+          filterBeta: 0.001;
+          missTolerance: 5;
+          warmupTolerance: 3;
+        "
+        color-space="sRGB"
+        renderer="colorManagement: true; physicallyCorrectLights: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+      >
+        <a-assets>
+          <!-- Replace these src paths with your actual video filenames -->
+          <video id="vid0" src="videos/act1-clinic.mp4"     playsinline loop muted crossorigin="anonymous"></video>
+          <video id="vid1" src="videos/act2-detection.mp4"  playsinline loop muted crossorigin="anonymous"></video>
+          <video id="vid2" src="videos/act3-school.mp4"     playsinline loop muted crossorigin="anonymous"></video>
+          <video id="vid3" src="videos/act4-stadium.mp4"    playsinline loop muted crossorigin="anonymous"></video>
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <!-- Act 1 — The Clinic (target index 0) -->
+        <a-entity mindar-image-target="targetIndex: 0" id="target0">
+          <a-video
+            src="#vid0"
+            position="0 0 0.001"
+            width="1" height="0.552"
+            rotation="0 0 0"
+          ></a-video>
+        </a-entity>
+
+        <!-- Act 2 — AI Detection (target index 1) -->
+        <a-entity mindar-image-target="targetIndex: 1" id="target1">
+          <a-video
+            src="#vid1"
+            position="0 0 0.001"
+            width="1" height="0.552"
+            rotation="0 0 0"
+          ></a-video>
+        </a-entity>
+
+        <!-- Act 3 — First Day of School (target index 2) -->
+        <a-entity mindar-image-target="targetIndex: 2" id="target2">
+          <a-video
+            src="#vid2"
+            position="0 0 0.001"
+            width="1" height="0.552"
+            rotation="0 0 0"
+          ></a-video>
+        </a-entity>
+
+        <!-- Act 4 — The Stadium Goal (target index 3) -->
+        <a-entity mindar-image-target="targetIndex: 3" id="target3">
+          <a-video
+            src="#vid3"
+            position="0 0 0.001"
+            width="1" height="0.552"
+            rotation="0 0 0"
+          ></a-video>
+        </a-entity>
+
+      </a-scene>
+    </div>
+
+    <script>
+      const sceneNames = [
+        'Act I — The Clinic',
+        'Act II — The Discovery',
+        'Act III — First Day',
+        'Act IV — The Goal'
+      ];
+
+      const videos   = [0,1,2,3].map(i => document.getElementById('vid' + i));
+      const dots     = [0,1,2,3].map(i => document.getElementById('dot' + i));
+      const label    = document.getElementById('sceneLabel');
+      const scanProm = document.getElementById('scan-prompt');
+      const scanText = document.querySelector('.scan-text');
+
+      let arStarted  = false;
+      let activeIdx  = -1;
+      let targetsHooked = false;
+
+      // ── Start button ──
+      document.getElementById('startBtn').addEventListener('click', async () => {
+        if (!window.isSecureContext) {
+          alert('Camera access requires HTTPS. Please open the hosted https:// URL on your phone.');
+          return;
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert('This browser does not support camera access. Please try Chrome or Safari on your phone.');
+          return;
+        }
+
+        // iOS Safari requires explicit getUserMedia call from a user gesture
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' }, 
+            audio: false 
+          });
+          // Stop the test stream immediately — MindAR will open its own
+          stream.getTracks().forEach(t => t.stop());
+        } catch (err) {
+          alert('Camera access is required. Please allow camera access and try again.');
+          return;
+        }
+
+        scanText.textContent = 'Starting camera';
+        scanText.classList.remove('error');
+        document.getElementById('splash').classList.add('hidden');
+        setTimeout(initAR, 800);
+      });
+
+      function initAR() {
+        const arDiv   = document.getElementById('ar-scene');
+        const hud     = document.getElementById('hud');
+        const indic   = document.getElementById('scene-indicator');
+
+        arDiv.classList.add('visible');
+        hud.classList.add('visible');
+        indic.classList.add('visible');
+
+        const sceneEl = arDiv.querySelector('a-scene');
+
+        startMindAR(sceneEl);
+
+        // Hook each target
+        if (targetsHooked) return;
+        targetsHooked = true;
+
+        [0,1,2,3].forEach(i => {
+          const entity = document.getElementById('target' + i);
+
+          entity.addEventListener('targetFound', () => {
+            onTargetFound(i);
+          });
+
+          entity.addEventListener('targetLost', () => {
+            onTargetLost(i);
+          });
+        });
+      }
+
+      function startMindAR(sceneEl) {
+        if (arStarted) return;
+
+        const start = async () => {
+          if (arStarted) return;
+
+          try {
+            const sys = sceneEl.systems['mindar-image-system'];
+            if (!sys) throw new Error('MindAR system is not ready yet.');
+
+            await sys.start();
+            arStarted = true;
+            scanText.textContent = 'Aim at the banner';
+            scanText.classList.remove('error');
+          } catch (err) {
+            console.error('Failed to start MindAR:', err);
+            scanText.textContent = 'Camera failed to start. Check camera permission, HTTPS, and reload the page.';
+            scanText.classList.add('error');
+          }
+        };
+
+        if (sceneEl.hasLoaded) {
+          start();
+        } else {
+          sceneEl.addEventListener('loaded', start, { once: true });
+        }
+      }
+
+      function onTargetFound(idx) {
+        activeIdx = idx;
+        scanProm.classList.add('hidden');
+
+        // Play this video, pause others
+        videos.forEach((v, i) => {
+          if (i === idx) {
+            v.play().catch(() => {});
+          } else {
+            v.pause();
+          }
+        });
+
+        // Update dots
+        dots.forEach((d, i) => {
+          d.classList.toggle('lit', i === idx);
+        });
+
+        // Show label
+        label.textContent = sceneNames[idx];
+        label.classList.add('show');
+      }
+
+      function onTargetLost(idx) {
+        if (activeIdx === idx) {
+          activeIdx = -1;
+          videos[idx].pause();
+          label.classList.remove('show');
+          scanProm.classList.remove('hidden');
+
+          dots.forEach(d => d.classList.remove('lit'));
+        }
+      }
+    </script>
+
+  </body>
+</html>
