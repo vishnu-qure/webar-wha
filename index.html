@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <title>qure.ai — A Child's Journey</title>
+    <title>qure.ai WebAR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
@@ -55,15 +55,6 @@
         color: #4A90D9;
       }
 
-      .splash-title {
-        font-size: 1.1rem;
-        color: rgba(255,255,255,0.5);
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-        font-family: 'Georgia', serif;
-        font-style: italic;
-      }
-
       .splash-divider {
         width: 40px;
         height: 1px;
@@ -83,44 +74,6 @@
         display: block;
         font-size: 1rem;
         margin-bottom: 0.5rem;
-      }
-
-      .start-btn {
-        margin-top: 1rem;
-        padding: 1rem 2.5rem;
-        background: #4A90D9;
-        color: #fff;
-        border: none;
-        border-radius: 50px;
-        font-size: 1rem;
-        font-family: 'Georgia', serif;
-        cursor: pointer;
-        letter-spacing: 0.05em;
-        transition: transform 0.2s, background 0.2s;
-      }
-
-      .start-btn:active {
-        transform: scale(0.97);
-        background: #3a7bc8;
-      }
-
-      .scenes-hint {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-      }
-
-      .scene-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.2);
-      }
-
-      .scene-dot.active {
-        background: #4A90D9;
-        width: 24px;
-        border-radius: 4px;
       }
 
       /* ── AR scene wrapper ── */
@@ -324,19 +277,14 @@
 
   <body>
 
-    <!-- ── Splash ── -->
+    <!-- ── Camera permission ── -->
     <div id="splash">
       <div class="splash-logo">qure<span>.ai</span></div>
       <div class="splash-divider"></div>
-      <div class="splash-title">A Child's Journey</div>
       <div class="splash-instruction">
-        <strong>Point at the banner</strong>
-        One scene will come alive when the marker is detected.
+        <strong id="cameraTitle">Starting camera</strong>
+        <span id="cameraDetail">Allow camera access when prompted.</span>
       </div>
-      <div class="scenes-hint">
-        <div class="scene-dot active"></div>
-      </div>
-      <button class="start-btn" id="startBtn">Begin Experience</button>
     </div>
 
     <!-- ── HUD ── -->
@@ -407,6 +355,9 @@
       const video     = document.getElementById('arVideo');
       const dot       = document.getElementById('dot0');
       const label    = document.getElementById('sceneLabel');
+      const splash   = document.getElementById('splash');
+      const cameraTitle = document.getElementById('cameraTitle');
+      const cameraDetail = document.getElementById('cameraDetail');
       const scanProm = document.getElementById('scan-prompt');
       const scanText = document.querySelector('.scan-text');
 
@@ -414,6 +365,8 @@
       let targetActive = false;
       let targetsHooked = false;
       let hasRedirected = false;
+      let cameraStartAttempted = false;
+      let fallbackHooked = false;
 
       video.addEventListener('ended', () => {
         if (hasRedirected) return;
@@ -422,19 +375,29 @@
         window.location.href = redirectUrl;
       });
 
-      // ── Start button ──
-      document.getElementById('startBtn').addEventListener('click', async () => {
+      window.addEventListener('load', () => {
+        setTimeout(() => requestCameraAndStart(), 250);
+      });
+
+      async function requestCameraAndStart() {
+        if (cameraStartAttempted) return;
+        cameraStartAttempted = true;
+
+        cameraTitle.textContent = 'Starting camera';
+        cameraDetail.textContent = 'Allow camera access when prompted.';
+
         if (!window.isSecureContext) {
-          alert('Camera access requires HTTPS. Please open the hosted https:// URL on your phone.');
+          cameraTitle.textContent = 'HTTPS required';
+          cameraDetail.textContent = 'Open the hosted https:// URL on your phone.';
           return;
         }
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          alert('This browser does not support camera access. Please try Chrome or Safari on your phone.');
+          cameraTitle.textContent = 'Camera unavailable';
+          cameraDetail.textContent = 'Please try Chrome or Safari on your phone.';
           return;
         }
 
-        // iOS Safari requires explicit getUserMedia call from a user gesture
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'environment' }, 
@@ -443,15 +406,29 @@
           // Stop the test stream immediately — MindAR will open its own
           stream.getTracks().forEach(t => t.stop());
         } catch (err) {
-          alert('Camera access is required. Please allow camera access and try again.');
+          console.error('Camera permission failed:', err);
+          cameraStartAttempted = false;
+          cameraTitle.textContent = 'Camera access required';
+          cameraDetail.textContent = 'Tap anywhere to allow camera access.';
+          hookCameraFallback();
           return;
         }
 
         scanText.textContent = 'Starting camera';
         scanText.classList.remove('error');
-        document.getElementById('splash').classList.add('hidden');
+        splash.classList.add('hidden');
         setTimeout(initAR, 800);
-      });
+      }
+
+      function hookCameraFallback() {
+        if (fallbackHooked) return;
+
+        fallbackHooked = true;
+        splash.addEventListener('click', () => {
+          fallbackHooked = false;
+          requestCameraAndStart();
+        }, { once: true });
+      }
 
       function initAR() {
         const arDiv   = document.getElementById('ar-scene');
