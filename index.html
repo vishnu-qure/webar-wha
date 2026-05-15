@@ -383,7 +383,7 @@
         device-orientation-permission-ui="enabled: false"
       >
         <a-assets>
-          <video id="arVideo" src="videos/ar-video.mp4" playsinline loop muted crossorigin="anonymous"></video>
+          <video id="arVideo" src="videos/ar-video.mp4" playsinline muted crossorigin="anonymous"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -403,6 +403,7 @@
 
     <script>
       const sceneName = 'AR Experience';
+      const redirectUrl = 'https://indiaai.qure.ai/stories';
       const video     = document.getElementById('arVideo');
       const dot       = document.getElementById('dot0');
       const label    = document.getElementById('sceneLabel');
@@ -412,6 +413,14 @@
       let arStarted  = false;
       let targetActive = false;
       let targetsHooked = false;
+      let hasRedirected = false;
+
+      video.addEventListener('ended', () => {
+        if (hasRedirected) return;
+
+        hasRedirected = true;
+        window.location.href = redirectUrl;
+      });
 
       // ── Start button ──
       document.getElementById('startBtn').addEventListener('click', async () => {
@@ -499,6 +508,7 @@
         targetActive = true;
         scanProm.classList.add('hidden');
 
+        video.currentTime = 0;
         video.play().catch(() => {});
         dot.classList.add('lit');
 
