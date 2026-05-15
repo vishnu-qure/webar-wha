@@ -331,13 +331,10 @@
       <div class="splash-title">A Child's Journey</div>
       <div class="splash-instruction">
         <strong>Point at the banner</strong>
-        Four scenes will come alive as you explore each part of the story.
+        One scene will come alive when the marker is detected.
       </div>
       <div class="scenes-hint">
         <div class="scene-dot active"></div>
-        <div class="scene-dot"></div>
-        <div class="scene-dot"></div>
-        <div class="scene-dot"></div>
       </div>
       <button class="start-btn" id="startBtn">Begin Experience</button>
     </div>
@@ -353,9 +350,6 @@
       <div class="scene-label" id="sceneLabel"></div>
       <div class="scene-dots">
         <div class="sdot" id="dot0"></div>
-        <div class="sdot" id="dot1"></div>
-        <div class="sdot" id="dot2"></div>
-        <div class="sdot" id="dot3"></div>
       </div>
     </div>
 
@@ -389,49 +383,15 @@
         device-orientation-permission-ui="enabled: false"
       >
         <a-assets>
-          <!-- Replace these src paths with your actual video filenames -->
-          <video id="vid0" src="videos/act1-clinic.mp4"     playsinline loop muted crossorigin="anonymous"></video>
-          <video id="vid1" src="videos/act2-detection.mp4"  playsinline loop muted crossorigin="anonymous"></video>
-          <video id="vid2" src="videos/act3-school.mp4"     playsinline loop muted crossorigin="anonymous"></video>
-          <video id="vid3" src="videos/act4-stadium.mp4"    playsinline loop muted crossorigin="anonymous"></video>
+          <video id="arVideo" src="videos/ar-video.mp4" playsinline loop muted crossorigin="anonymous"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <!-- Act 1 — The Clinic (target index 0) -->
-        <a-entity mindar-image-target="targetIndex: 0" id="target0">
+        <!-- Single AR target (target index 0) -->
+        <a-entity mindar-image-target="targetIndex: 0" id="arTarget">
           <a-video
-            src="#vid0"
-            position="0 0 0.001"
-            width="1" height="0.552"
-            rotation="0 0 0"
-          ></a-video>
-        </a-entity>
-
-        <!-- Act 2 — AI Detection (target index 1) -->
-        <a-entity mindar-image-target="targetIndex: 1" id="target1">
-          <a-video
-            src="#vid1"
-            position="0 0 0.001"
-            width="1" height="0.552"
-            rotation="0 0 0"
-          ></a-video>
-        </a-entity>
-
-        <!-- Act 3 — First Day of School (target index 2) -->
-        <a-entity mindar-image-target="targetIndex: 2" id="target2">
-          <a-video
-            src="#vid2"
-            position="0 0 0.001"
-            width="1" height="0.552"
-            rotation="0 0 0"
-          ></a-video>
-        </a-entity>
-
-        <!-- Act 4 — The Stadium Goal (target index 3) -->
-        <a-entity mindar-image-target="targetIndex: 3" id="target3">
-          <a-video
-            src="#vid3"
+            src="#arVideo"
             position="0 0 0.001"
             width="1" height="0.552"
             rotation="0 0 0"
@@ -442,21 +402,15 @@
     </div>
 
     <script>
-      const sceneNames = [
-        'Act I — The Clinic',
-        'Act II — The Discovery',
-        'Act III — First Day',
-        'Act IV — The Goal'
-      ];
-
-      const videos   = [0,1,2,3].map(i => document.getElementById('vid' + i));
-      const dots     = [0,1,2,3].map(i => document.getElementById('dot' + i));
+      const sceneName = 'AR Experience';
+      const video     = document.getElementById('arVideo');
+      const dot       = document.getElementById('dot0');
       const label    = document.getElementById('sceneLabel');
       const scanProm = document.getElementById('scan-prompt');
       const scanText = document.querySelector('.scan-text');
 
       let arStarted  = false;
-      let activeIdx  = -1;
+      let targetActive = false;
       let targetsHooked = false;
 
       // ── Start button ──
@@ -503,21 +457,14 @@
 
         startMindAR(sceneEl);
 
-        // Hook each target
         if (targetsHooked) return;
         targetsHooked = true;
 
-        [0,1,2,3].forEach(i => {
-          const entity = document.getElementById('target' + i);
+        const entity = document.getElementById('arTarget');
 
-          entity.addEventListener('targetFound', () => {
-            onTargetFound(i);
-          });
+        entity.addEventListener('targetFound', onTargetFound);
 
-          entity.addEventListener('targetLost', () => {
-            onTargetLost(i);
-          });
-        });
+        entity.addEventListener('targetLost', onTargetLost);
       }
 
       function startMindAR(sceneEl) {
@@ -548,37 +495,24 @@
         }
       }
 
-      function onTargetFound(idx) {
-        activeIdx = idx;
+      function onTargetFound() {
+        targetActive = true;
         scanProm.classList.add('hidden');
 
-        // Play this video, pause others
-        videos.forEach((v, i) => {
-          if (i === idx) {
-            v.play().catch(() => {});
-          } else {
-            v.pause();
-          }
-        });
+        video.play().catch(() => {});
+        dot.classList.add('lit');
 
-        // Update dots
-        dots.forEach((d, i) => {
-          d.classList.toggle('lit', i === idx);
-        });
-
-        // Show label
-        label.textContent = sceneNames[idx];
+        label.textContent = sceneName;
         label.classList.add('show');
       }
 
-      function onTargetLost(idx) {
-        if (activeIdx === idx) {
-          activeIdx = -1;
-          videos[idx].pause();
+      function onTargetLost() {
+        if (targetActive) {
+          targetActive = false;
+          video.pause();
           label.classList.remove('show');
           scanProm.classList.remove('hidden');
-
-          dots.forEach(d => d.classList.remove('lit'));
+          dot.classList.remove('lit');
         }
       }
     </script>
