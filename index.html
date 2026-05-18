@@ -351,7 +351,7 @@
 
     <script>
       const sceneName = 'AR Experience';
-      const redirectUrl = 'https://indiaai.qure.ai/stories';
+      const redirectUrl = 'https://qure-ai-healthcare.vercel.app/stories';
       const video     = document.getElementById('arVideo');
       const dot       = document.getElementById('dot0');
       const label    = document.getElementById('sceneLabel');
@@ -399,9 +399,9 @@
         }
 
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' }, 
-            audio: false 
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' },
+            audio: false
           });
           // Stop the test stream immediately — MindAR will open its own
           stream.getTracks().forEach(t => t.stop());
