@@ -129,7 +129,7 @@
       /* ── Scene indicator ── */
       #scene-indicator {
         position: fixed;
-        bottom: 2rem;
+        bottom: 4rem;
         left: 50%;
         transform: translateX(-50%);
         z-index: 50;
@@ -295,6 +295,19 @@
         outline: 2px solid #fff;
         outline-offset: 3px;
       }
+
+      .ar-start-button {
+        position: fixed;
+        left: 50%;
+        bottom: 1rem;
+        z-index: 60;
+        display: none;
+        transform: translateX(-50%);
+      }
+
+      .ar-start-button.visible {
+        display: inline-block;
+      }
     </style>
   </head>
 
@@ -308,7 +321,6 @@
         <strong id="cameraTitle">Starting camera</strong>
         <span id="cameraDetail">Allow camera access when prompted.</span>
       </div>
-      <a class="start-button" href="https://qure-ai-healthcare.vercel.app/stories">Start</a>
     </div>
 
     <!-- ── HUD ── -->
@@ -335,6 +347,8 @@
       <div class="scan-text">Aim at the QR code</div>
       <a class="start-button" href="https://qure-ai-healthcare.vercel.app/stories">Start</a>
     </div>
+
+    <a id="arStartButton" class="start-button ar-start-button" href="https://qure-ai-healthcare.vercel.app/stories">Start</a>
 
     <!-- ── AR Scene ── -->
     <div id="ar-scene">
@@ -385,6 +399,7 @@
       const cameraDetail = document.getElementById('cameraDetail');
       const scanProm = document.getElementById('scan-prompt');
       const scanText = document.querySelector('.scan-text');
+      const arStartButton = document.getElementById('arStartButton');
 
       let arStarted  = false;
       let targetActive = false;
@@ -509,6 +524,7 @@
       function onTargetFound() {
         targetActive = true;
         scanProm.classList.add('hidden');
+        arStartButton.classList.add('visible');
 
         video.currentTime = 0;
         video.play().catch(() => {});
@@ -524,6 +540,7 @@
           video.pause();
           label.classList.remove('show');
           scanProm.classList.remove('hidden');
+          arStartButton.classList.remove('visible');
           dot.classList.remove('lit');
         }
       }
