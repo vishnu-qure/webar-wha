@@ -272,6 +272,29 @@
       #scan-prompt.hidden {
         display: none;
       }
+
+      .start-button {
+        pointer-events: auto;
+        appearance: none;
+        border: 1px solid rgba(255,255,255,0.45);
+        margin-top: 20px;
+        border-radius: 999px;
+        background: rgba(74,144,217,0.86);
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        line-height: 1;
+        padding: 0.85rem 1.4rem;
+        text-decoration: none;
+      }
+
+      .start-button:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 3px;
+      }
     </style>
   </head>
 
@@ -285,12 +308,13 @@
         <strong id="cameraTitle">Starting camera</strong>
         <span id="cameraDetail">Allow camera access when prompted.</span>
       </div>
+      <a class="start-button" href="https://qure-ai-healthcare.vercel.app/stories">Start</a>
     </div>
 
     <!-- ── HUD ── -->
     <div id="hud">
       <div class="hud-logo">qure<span>.ai</span></div>
-      <div class="hud-hint">Point at the banner</div>
+      <div class="hud-hint">Point at the QR code</div>
     </div>
 
     <!-- ── Scene indicator ── -->
@@ -308,7 +332,8 @@
         <div class="scan-frame-bl"></div>
         <div class="scan-line"></div>
       </div>
-      <div class="scan-text">Aim at the banner</div>
+      <div class="scan-text">Aim at the QR code</div>
+      <a class="start-button" href="https://qure-ai-healthcare.vercel.app/stories">Start</a>
     </div>
 
     <!-- ── AR Scene ── -->
@@ -465,7 +490,7 @@
 
             await sys.start();
             arStarted = true;
-            scanText.textContent = 'Aim at the banner';
+            scanText.textContent = 'Aim at the QR code';
             scanText.classList.remove('error');
           } catch (err) {
             console.error('Failed to start MindAR:', err);
